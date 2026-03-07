@@ -83,7 +83,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
             const statusMsg = await message.reply("Translating to English... 🇺🇸");
 
             const response = await ollama.chat({
-                model: 'llama3.2:3b', // This must match the model name in 'ollama list'
+                model: 'huihui_ai/llama3.2-abliterate:latest', // This must match the model name in 'ollama list'
                 messages: [
                     { 
                         role: 'system', 
