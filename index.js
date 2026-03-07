@@ -1,20 +1,27 @@
-// Require the necessary discord.js classes
+// IMPORTS
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Collection, Events, GatewayIntentBits, MessageFlags } = require('discord.js');
+const { default: ollama } = require('ollama'); // ✅ New way
 
-// Create a new client instance
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+// Prepare Client
+const client = new Client({
+    intents: [
+        GatewayIntentBits.Guilds,           
+        GatewayIntentBits.GuildMessages,    
+        GatewayIntentBits.MessageContent,   
+        GatewayIntentBits.GuildMessageReactions,
+    ],
+});
 
-// When the client is ready, run this code (only once).
-// The distinction between `client: Client<boolean>` and `readyClient: Client<true>` is important for TypeScript developers.
-// It makes some properties non-nullable.
 client.once(Events.ClientReady, (readyClient) => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
 client.commands = new Collection(); 
 
+
+// COMMANDS
 // Create paths for commands folder and files
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
@@ -25,7 +32,6 @@ for (const folder of commandFolders) {
 	for (const file of commandFiles) {
 		const filePath = path.join(commandsPath, file);
 		const command = require(filePath);
-		// Set a new item in the Collection with the key as the command name and the value as the exported module
 		if ('data' in command && 'execute' in command) {
 			client.commands.set(command.data.name, command);
 		} else {
@@ -33,6 +39,7 @@ for (const folder of commandFolders) {
 		}
 	}
 }
+
 
 // Maps commands to their respective command folder
 client.on(Events.InteractionCreate, async (interaction) => {
@@ -61,6 +68,42 @@ client.on(Events.InteractionCreate, async (interaction) => {
 			});
 		}
 	}
+});
+
+// EVENT LISTENERS
+client.on('messageReactionAdd', async (reaction, user) => {
+    if (user.bot) return;
+
+    if (reaction.emoji.name === '🇺🇸') {
+        const message = reaction.message;
+        if (!message.content) return;
+
+        try {
+            // Send a "Place holder" message to the channel so users know the AI is thinking.
+            const statusMsg = await message.reply("Translating to English... 🇺🇸");
+
+            const response = await ollama.chat({
+                model: 'llama3.2:3b', // This must match the model name in 'ollama list'
+                messages: [
+                    { 
+                        role: 'system', 
+                        content: 'You are a translator. Translate the text to English accurately. Provide ONLY the translation.' 
+                    },
+                    { 
+                        role: 'user', 
+                        content: message.content
+                    }
+                ],
+            });
+
+            await statusMsg.edit(`**English:** ${response.message.content}`);
+
+        } catch (error) {
+            // If Ollama isn't open or the model isn't downloaded, this will run.
+            console.error("Error connecting to Ollama:", error);
+            message.reply("Couldn't reach the Ollama server ", error );
+        }
+    }
 });
 
 
