@@ -71,6 +71,30 @@ client.on(Events.InteractionCreate, async (interaction) => {
 });
 
 // EVENT LISTENERS
+client.on(Events.MessageCreate, async (message) => {
+    if (message.author.bot || !message.mentions.has(client.user)) return;
+    const cleanPrompt = message.content.replace(/<@!?\d+>/g, '').trim();
+
+    if (!cleanPrompt) return message.reply("Yes? How can I help you?");
+
+    try {
+        await message.channel.sendTyping();
+
+        const response = await ollama.chat({
+            model: 'mannix/llama3.1-8b-abliterated:latest',
+            messages: [
+                { role: 'system', content: 'You are a discord bot assistant. Keep your answers helpful. ' },
+                { role: 'user', content: cleanPrompt }
+            ],
+        });
+
+        await message.reply(response.message.content);
+    } catch (error) {
+        console.error("Ollama Mention Error:", error);
+        message.reply("I'm having trouble connecting to my local Ollama server.");
+    }
+});
+
 client.on('messageReactionAdd', async (reaction, user) => {
     if (user.bot) return;
 
