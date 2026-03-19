@@ -23,7 +23,6 @@ client.once(Events.ClientReady, (readyClient) => {
 client.commands = new Collection(); 
 
 // COMMANDS
-// Create paths for commands folder and files
 const foldersPath = path.join(__dirname, 'commands');
 const commandFolders = fs.readdirSync(foldersPath);
 
@@ -41,7 +40,6 @@ for (const folder of commandFolders) {
     }
 }
 
-// Maps commands to their respective command folder
 client.on(Events.InteractionCreate, async (interaction) => {
     if (!interaction.isChatInputCommand()) return; 
     console.log(interaction);
@@ -72,6 +70,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
 // EVENT LISTENERS
 client.on(Events.MessageCreate, async (message) => {
+    // Ignore normal bot messages or messages that don't mention our bot
     if (message.author.bot || !message.mentions.has(client.user)) return;
     const cleanPrompt = message.content.replace(/<@!?\d+>/g, '').trim();
 
@@ -80,13 +79,32 @@ client.on(Events.MessageCreate, async (message) => {
     try {
         await message.channel.sendTyping();
 
-        // ✅ OpenAI Chat Call
+        //Rolling messages, get the last 10 messages
+        let prevMessages = await message.channel.messages.fetch({ limit: 10 });
+        prevMessages = prevMessages.reverse(); 
+
+        // Build conversation context
+        const conversationLog = [
+            { role: 'system', content: 'You are a discord bot assistant. Pattern the way you speak similar to the twitch streamer Emiru.' }
+        ];
+
+        prevMessages.forEach((msg) => {
+            if (!msg.content || (msg.author.bot && msg.author.id !== client.user.id)) return;
+
+            const cleanContent = msg.content.replace(/<@!?\d+>/g, '').trim();
+            if (!cleanContent) return;
+
+            const role = msg.author.id === client.user.id ? 'assistant' : 'user';
+
+            conversationLog.push({
+                role: role,
+                content: cleanContent
+            });
+        });
+
         const response = await openai.chat.completions.create({
-            model: 'gpt-4.1',
-            messages: [
-                { role: 'system', content: 'You are a discord bot assistant. Pattern the way you speak similar to the twitch streamer Emiru.' },
-                { role: 'user', content: cleanPrompt }
-            ],
+            model: 'gpt-3.5-turbo', 
+            messages: conversationLog,
         });
 
         await message.reply(response.choices[0].message.content);
@@ -104,12 +122,10 @@ client.on('messageReactionAdd', async (reaction, user) => {
         if (!message.content) return;
 
         try {
-            // Send a "Placeholder" message to the channel so users know the AI is thinking.
             const statusMsg = await message.reply("Translating to English... 🇺🇸");
 
-            // ✅ OpenAI Translation Call
             const response = await openai.chat.completions.create({
-                model: 'gpt-4o-mini', 
+                model: 'gpt-4.1-mini', 
                 messages: [
                     { 
                         role: 'system', 
