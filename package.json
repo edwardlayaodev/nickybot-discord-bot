@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "start": "node --env-file=.env index.js"
+    "start": "node index.js",
+    "deploy-commands": "node deploy-commands.js"
   },
   "dependencies": {
     "discord.js": "^14.25.1",
