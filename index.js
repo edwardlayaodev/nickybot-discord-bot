@@ -110,7 +110,23 @@ client.on(Events.MessageCreate, async (message) => {
         await message.reply(response.choices[0].message.content);
     } catch (error) {
         console.error("OpenAI Mention Error:", error);
-        message.reply("I'm having trouble connecting to OpenAI right now.");
+
+        // Extract error details from OpenAI response
+        let errorMsg = "I'm having trouble connecting to OpenAI right now.";
+        if (error.error) {
+            const apiError = error.error;
+            errorMsg = `**OpenAI Error:** ${apiError.message || 'Unknown error'}`;
+            if (apiError.type) {
+                errorMsg += `\n**Type:** ${apiError.type}`;
+            }
+            if (apiError.code) {
+                errorMsg += `\n**Code:** ${apiError.code}`;
+            }
+        } else if (error.message) {
+            errorMsg = `**Error:** ${error.message}`;
+        }
+
+        message.reply(errorMsg);
     }
 });
 
@@ -142,7 +158,23 @@ client.on('messageReactionAdd', async (reaction, user) => {
 
         } catch (error) {
             console.error("Error connecting to OpenAI:", error);
-            message.reply("Couldn't reach OpenAI for the translation.");
+
+            // Extract error details from OpenAI response
+            let errorMsg = "Couldn't reach OpenAI for the translation.";
+            if (error.error) {
+                const apiError = error.error;
+                errorMsg = `**OpenAI Error:** ${apiError.message || 'Unknown error'}`;
+                if (apiError.type) {
+                    errorMsg += `\n**Type:** ${apiError.type}`;
+                }
+                if (apiError.code) {
+                    errorMsg += `\n**Code:** ${apiError.code}`;
+                }
+            } else if (error.message) {
+                errorMsg = `**Error:** ${error.message}`;
+            }
+
+            await statusMsg.edit(errorMsg);
         }
     }
 });
