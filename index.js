@@ -123,6 +123,9 @@ client.on(Events.MessageCreate, async (message) => {
     const response = await openai.chat.completions.create({
       model: process.env.MODEL_NAME,
       messages: conversationLog,
+      extra_body: {
+        thinking: { type: "disabled" },
+      },
     });
 
     await message.reply(response.choices[0].message.content);
@@ -171,6 +174,9 @@ client.on("messageReactionAdd", async (reaction, user) => {
             content: message.content,
           },
         ],
+        extra_body: {
+          thinking: { type: "disabled" },
+        },
       });
 
       await statusMsg.edit(
