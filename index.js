@@ -121,7 +121,7 @@ client.on(Events.MessageCreate, async (message) => {
     });
 
     const response = await openai.chat.completions.create({
-      model: "process.env.MODEL_NAME",
+      model: process.env.MODEL_NAME,
       messages: conversationLog,
     });
 
